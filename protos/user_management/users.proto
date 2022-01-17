@@ -1,0 +1,100 @@
+syntax = "proto3";
+
+package UsersV1;
+
+// Users - All of the public methods that relate to a user.
+service Users {
+  // Create a new user in the system
+  rpc Signup(SignupUserRequest) returns (SignupUserResponse) {}
+
+  // List all users
+  rpc GetById(GetUserByIdRequest) returns (GetUserByIdResponse) {}
+
+  // Update a user's details
+  rpc UpdateById(UpdateUserRequest) returns (UpdateUserResponse) {}
+
+  // Delete a user by their id
+  rpc DeleteById(DeleteByIdRequest) returns (DeleteByIdResponse) {}
+
+  // SayHello to a user
+  rpc SayHello(HelloUserRequest) returns (HelloUserResponse) {}
+}
+
+//////////////////////
+/// ROOT AGGREGATE ///
+//////////////////////
+
+// this is similar to the model of the User aggregate type.
+message User {
+  string id = 1;
+  string username = 2;
+  string first_name = 3;
+  string last_name = 4;
+  string email = 5;
+  string password = 6;
+}
+
+/////////////////////
+/// CRUD MESSAGES ///
+/////////////////////
+
+message SignupUserRequest {
+  User model = 1;
+}
+
+message SignupUserResponse {
+  string id = 1;
+}
+
+message GetUserByIdRequest {
+  string id = 1;
+}
+
+message GetUserByIdResponse {
+  User model = 1;
+}
+
+message UpdateUserRequest {
+  // `id` from the users is used to lookup single data for aggregate to change
+  User model = 1;
+  
+  // all fields in protobuf's are optional, and thus a list of attributes to change
+  // must be provided in updates.
+  repeated string update_fields = 2;
+}
+
+message UpdateUserResponse {
+  User model = 1;
+}
+
+message DeleteByIdRequest {
+  string id = 1;
+}
+
+message DeleteByIdResponse {
+  string id = 1;
+}
+
+//////////////
+/// EVENTS ///
+//////////////
+message UserSignedUp {
+  string email = 1;
+}
+
+message UserRegistered {
+  string id = 1;
+}
+
+
+/////////////////////////
+/// Syncronus Actions ///
+/////////////////////////
+
+message HelloUserRequest {
+  string username = 1;
+}
+
+message HelloUserResponse {
+  string hello_output = 1;
+}

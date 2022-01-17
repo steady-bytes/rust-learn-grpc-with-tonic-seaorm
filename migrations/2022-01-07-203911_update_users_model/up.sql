@@ -1,0 +1,4 @@
+-- Your SQL goes here
+
+-- DROP USERS TABLE --
+DROP TABLE IF EXISTS users CASCADE;
