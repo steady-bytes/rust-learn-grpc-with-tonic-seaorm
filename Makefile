@@ -32,7 +32,8 @@ db-env-setup:
 db-run: db-image db-start-network db-start-master db-init db-migrate
 
 # stop db and clean all db files that have been written to the local system 
-db-local-terminate:
+db-terminate: db-clean-master-node db-stop-network db-data-clean
+
 
 ######################
 ### database utilities 
@@ -101,8 +102,6 @@ db-stop-network:
 
 db-data-clean:
 	sudo rm -rf $(PWD)/deployments/sql/data
-
-db-terminate: db-clean-master-node db-stop-network db-data-clean
 
 ### utilities
 
