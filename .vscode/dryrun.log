@@ -1,0 +1,6 @@
+make --dry-run --always-make --keep-going --print-directory
+make: Entering directory `/Users/andrew/Projects/rust-learn-grpc-with-tonic-seaorm'
+echo "DATABASE_URL=postgres://services@localhost:26257/users" > .env && \
+	echo "# For documentation on how to configure this file, \n# see diesel.rs/guides/configuring-diesel-cli \n\n[print_schema] \nfile = \"./src/dao/schema.rs\"" > diesel.toml
+make: Leaving directory `/Users/andrew/Projects/rust-learn-grpc-with-tonic-seaorm'
+ 

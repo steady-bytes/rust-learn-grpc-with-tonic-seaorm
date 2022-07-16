@@ -1,8 +1,8 @@
-use diesel::r2d2::{Pool, ConnectionManager};
-use diesel::pg::{PgConnection};
-
-use crate::cmd::users::model;
-use crate::cmd::crud::{SingularCrud};
+use async_trait::async_trait;
+use entity::user;
+use crate::cmd::{SingularCrud};
+use sea_orm::{DatabaseConnection, IntoActiveModel, DbErr, ActiveModelTrait, EntityTrait, ActiveValue::Set};
+use futures::executor::block_on;
 
 ////////////////////////
 /// USERS CONTROLLER ///
@@ -11,52 +11,82 @@ use crate::cmd::crud::{SingularCrud};
 /// UsersController - Responsible to implement all of the business logic worhflows
 /// of the user entity.
 pub struct UsersController {
-  db_connection_pool: Pool<ConnectionManager<PgConnection>>,
+  db_connection: DatabaseConnection
 }
 
 impl UsersController {
-  pub fn default(db_address: String) -> Self {
-    let manager = ConnectionManager::<PgConnection>::new(db_address);
-    let pool = r2d2::Pool::new(manager).unwrap();
+  pub fn default(db_address: String) -> Option<Self> {
+    let db_conn_future = sea_orm::Database::connect(&db_address);
 
-    UsersController {
-      db_connection_pool: pool,
+    // not using await b/c this is not an async function
+    match block_on(db_conn_future) {
+      Ok(db) => {
+        Some(UsersController {
+          db_connection: db,
+        })
+      },
+      Err(_e) => None
     }
   }
 }
 
+#[async_trait]
 impl SingularCrud for UsersController {
-  type Entity = model::User;
-  type InputFormFields = model::UserForm;
-  type Error = String;
+  type Entity = user::ActiveModel;
+  type InputFormFields = user::ActiveModel;
 
-  fn create(&self, m: Self::InputFormFields) -> Result<model::User, Self::Error> { 
-    let conn = self.db_connection_pool.get().unwrap();
-    let user = m.create(&*conn).unwrap();
+  async fn create(&self, m: Self::InputFormFields) -> Result<Self::Entity, DbErr> { 
+    let create = m.insert(&self.db_connection.clone()).await;
 
-    // todo -> create a user in the OAuth provider
-
-    Ok(user)
+    match create {
+      Ok(v) => Ok(v.into_active_model()),
+      Err(_) => Err(DbErr::Exec(String::from("new user entity was not saved"))),
+    }
   }
 
-  fn read(&self, m: Self::InputFormFields) -> Result<model::User, Self::Error> {
-    let conn = self.db_connection_pool.get().unwrap();
-    let user = m.read(&*conn).unwrap();
+  async fn read(&self, m: Self::InputFormFields) -> Result<Self::Entity, DbErr> {
+    let read = user::Entity::find_by_id(m.id.unwrap()).one(&self.db_connection.clone()).await?;
 
-    Ok(user)
+    match read {
+      Some(v) => Ok(v.into_active_model()),
+      None => Err(DbErr::Exec(String::from("entity was not found by provided id")))
+    }
   }
 
-  fn update(&self, m: Self::InputFormFields) -> Result<model::User, Self::Error> {
-    let conn = self.db_connection_pool.get().unwrap();
-    let user = m.update(&*conn).unwrap(); 
-    
-    Ok(user)
+  async fn update(&self, m: Self::InputFormFields) -> Result<Self::Entity, DbErr> {
+    // handle the option in a better way, for example if the entity can't be found then a better error needs to be returned
+    let mut update_user: user::ActiveModel = user::Entity::find_by_id(m.id.unwrap())
+      .one(&self.db_connection.clone())
+      .await
+      .unwrap()
+      .unwrap()
+      .into();
+
+    // TODO -> find a better way to map requests to attributes
+    update_user.last_name = Set(m.last_name.unwrap());
+
+    let update = update_user.update(&self.db_connection.clone()).await;
+
+    match update {
+      Ok(v) => Ok(v.into_active_model()),
+      Err(_) => Err(DbErr::Exec(String::from("failed to update user entityt"))),
+    }
   }
 
-  fn delete(&self, m: Self::InputFormFields) -> Result<model::User, Self::Error> {
-    let conn = self.db_connection_pool.get().unwrap();
-    let user = m.delete(&*conn).unwrap();
+  async fn delete(&self, m: Self::InputFormFields) -> Result<bool, DbErr> {
+    // TODO -> handle the option better.
+    let delete_user: user::ActiveModel = user::Entity::find_by_id(m.id.unwrap())
+      .one(&self.db_connection.clone())
+      .await
+      .unwrap()
+      .unwrap()
+      .into();
+  
+    let status = delete_user.delete(&self.db_connection.clone()).await;
 
-    Ok(user)
+    match status {
+      Ok(_) => Ok(true),
+      Err(_) => Err(DbErr::Exec(String::from("failed to delete user entity"))),
+    }
   }
 }

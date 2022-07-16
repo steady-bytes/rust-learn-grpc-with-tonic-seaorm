@@ -1,17 +1,18 @@
-#[macro_use]
-extern crate diesel;
 extern crate validator;
 extern crate log;
 
-use crate::cmd::root::{Cmd};
+use crate::cmd::{Cmd};
 
 mod api;
 mod cmd;
-mod dao;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    Cmd::default().execute().await?;
-
-    Ok(())
+  match Cmd::new().default().await {
+    Ok(x) => {
+      x.execute().await?;
+      Ok(())
+    },
+    Err(_e) => Ok(())
+  }
 }

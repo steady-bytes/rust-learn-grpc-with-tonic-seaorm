@@ -1,3 +1,5 @@
+
+
 .PHONY: db db-image start-db exec-db migrate-db clean-db db-env-setup
 
 #######################
@@ -84,7 +86,7 @@ db-init:
 
 # run the diesel migration tool
 db-migrate:
-	diesel migration run
+	sea-orm-cli migrate up
 
 ### Terminate - the whole db stack, it's configuration, and data
 db-clean-master-node:
